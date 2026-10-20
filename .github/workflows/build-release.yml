@@ -1,0 +1,109 @@
+name: "Build & Release"
+
+# Bu iş akışı:
+# 1) v* etiketi itildiğinde (workflow_dispatch ile elle de tetiklenebilir)
+#    Windows ve Linux için PyInstaller ile çalıştırılabilir üretir.
+# 2) Ürünleri arşivleyip GitHub Release olarak yayınlar.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bağımlılıkları kur
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: PyInstaller ile derle
+        run: pyinstaller shorts_forge.spec --noconfirm
+
+      - name: Zip paketine dönüştür
+        run: Compress-Archive -Path dist/ShortsForge/* -DestinationPath ShortsForge-Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShortsForge-Windows
+          path: ShortsForge-Windows.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Sistem paketleri (tkinter + Xvfb smoke testi için)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+
+      - name: Bağımlılıkları kur
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Smoke test (GUI modülü import edilebiliyor mu?)
+        run: xvfb-run -a python -c "import gui; print('GUI import OK')"
+
+      - name: PyInstaller ile derle
+        run: pyinstaller shorts_forge.spec --noconfirm
+
+      - name: Tar.gz paketine dönüştür
+        run: tar -czf ShortsForge-Linux.tar.gz -C dist ShortsForge
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShortsForge-Linux
+          path: ShortsForge-Linux.tar.gz
+
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    # Sadece v* etiketinden tetiklendiğinde yayınla
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "ShortsForge-*"
+          merge-multiple: true
+
+      - name: GitHub Release oluştur ve dosyaları yükle
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ShortsForge-Windows.zip
+            ShortsForge-Linux.tar.gz
+          generate_release_notes: true
+          body: |
+            ## Shorts Forge Masaüstü Sürümleri
+
+            **Önemli:** Bu paketler yalnızca uygulamadır. Çalıştırmak için makinenizde ayrıca şunlar gerekir:
+            - **ffmpeg** (PATH'te olmalı): https://ffmpeg.org/download.html
+            - **Ollama** yerel LLM sunucusu: https://ollama.com (`ollama pull llama3`)
+            - Ücretsiz **Pexels API anahtarı**: https://www.pexels.com/api/
+
+            İlk açılışta **⚙️ Ayarlar** sekmesinden API anahtarınızı girip **Kaydet**'e basın.
+
+            | Dosya | Platform | Çalıştırma |
+            |---|---|---|
+            | `ShortsForge-Windows.zip` | Windows 10/11 x64 | `ShortsForge.exe` çift tık |
+            | `ShortsForge-Linux.tar.gz` | Linux x64 | `tar -xzf ... && ./ShortsForge` (python3-tk gerekli) |

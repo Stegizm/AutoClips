@@ -22,3 +22,9 @@ temp/
 # OS
 .DS_Store
 Thumbs.db
+
+# PyInstaller
+dist/
+build/
+*.spec.bak
+*.egg-info/

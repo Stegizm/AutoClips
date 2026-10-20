@@ -7,25 +7,40 @@ Diğer modüller sihirli sayı (magic number) yerine bu dosyadaki sabitleri kull
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-# .env dosyasını proje kökünden yükle
-load_dotenv()
+# .env dosyasını (varsa) proje kökünden yükle; ayrı çağrı aşağıda yapılır
 
 # ---------------------------------------------------------------------------
 # Proje yolları (pathlib ile -> Windows/Linux uyumlu)
 # ---------------------------------------------------------------------------
 PROJECT_ROOT: Path = Path(__file__).resolve().parent
-OUTPUT_DIR: Path = PROJECT_ROOT / "output"
-TEMP_DIR: Path = PROJECT_ROOT / "temp"
+
+# PyInstaller ile paketlenmiş (frozen) çalıştırmada uygulama dosyaları geçici
+# bir klasörde olur; bu yüzden kullanıcı verisi için evin altında bir klasör kullanılır.
+if getattr(sys, "frozen", False):
+    DATA_ROOT: Path = Path.home() / ".shorts-forge"
+else:
+    DATA_ROOT = PROJECT_ROOT
+
+OUTPUT_DIR: Path = DATA_ROOT / "output"
+TEMP_DIR: Path = DATA_ROOT / "temp"
+ENV_FILE: Path = DATA_ROOT / ".env"
 PROMPTS_DIR: Path = PROJECT_ROOT / "shorts_forge" / "prompts"
 SYSTEM_PROMPT_FILE: Path = PROMPTS_DIR / "system_prompt.txt"
 
 # ---------------------------------------------------------------------------
 # Ortam değişkenleri (.env üzerinden)
 # ---------------------------------------------------------------------------
+# 1) Geliştirme: proje kökündeki .env  2) Paketlenmiş: ~/.shorts-forge/.env
+load_dotenv(PROJECT_ROOT / ".env")
+if ENV_FILE != PROJECT_ROOT / ".env":
+    load_dotenv(ENV_FILE, override=False)
+
+# Okunan ortam değişkenleri (modül seviyesinde sabitler)
 PEXELS_API_KEY: str = os.getenv("PEXELS_API_KEY", "")
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
