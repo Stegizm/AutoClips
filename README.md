@@ -326,6 +326,8 @@ Geçici dosyalar (`temp/`) montaj biter bitmez otomatik olarak silinir.
 | LLM bozuk JSON döndürüyor / retry uyarıları | Daha talimat-uyumlu model deneyin: `ollama pull qwen2.5:3b` veya `mistral` |
 | `ModuleNotFoundError: moviepy.editor` | MoviePy **2.x** kurulmuş olabilir. Bu proje 1.x API'siyle yazıldı: `pip install "moviepy==1.0.3"` |
 | `FFmpeg not found` / render hatası | `sudo pacman -S ffmpeg` (veya ilgili paket yöneticisi) kurun, PATH'i kontrol edin |
+| `module 'PIL.Image' has no attribute 'ANTIALIAS'` uyarısı | Pillow ≥ 10 + MoviePy 1.0.3 uyumsuzluğu — composer başındaki yama bunu otomatik giderir; güncel `Pillow` kurulu tutun |
+| `ImageMagick ... No such file or directory` | Artık beklenmez: altyazılar ImageMagick yerine PIL ile çizilir. Görürseniz eski sürüm kullanıyorsunuz demektir (`git pull`) |
 | Altyazılarda Türkçe karakterler kutu/bozuk | Font sorunu — composer DejaVu/Liberation TTF arar; `ttf-dejavu` paketini kurun |
 | İndirmeler çok yavaş / timeout | Ağ hızınız düşük; `PEXELS_DOWNLOAD_TIMEOUT_SECONDS` artırılabilir ama asıl çözüm stabil bağlantı |
 | HTTP 429 Too Many Requests (Pexels) | Saatlik 200 istek aşıldı → `PEXELS_REQUEST_DELAY_SECONDS` değerini artırın veya ~1 saat bekleyin |
